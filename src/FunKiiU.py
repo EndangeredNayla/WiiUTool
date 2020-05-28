@@ -11,12 +11,11 @@ import os
 import re
 import sys
 import zlib
+import subprocess
 from urllib.error import URLError
 
 import requests
 from requests.exceptions import HTTPError
-
-real_input = input  # Python3
 
 SYMBOLS = {
     "customary": ("B", "KB", "MB", "GB", "T", "P", "E", "Z", "Y"),
@@ -213,6 +212,18 @@ def b64decompress(d):
     return zlib.decompress(base64.b64decode(d))
 
 
+def decode_keysite(keysite):
+    return base64.b64decode(keysite.encode("utf8"))[::-1].decode("utf-8")
+
+
+def encode_keysite(keysite):
+    return base64.b64encode(keysite[::-1].encode("utf-8")).decode("utf8")
+
+
+def validate_keysite(keysite):
+    return hashlib.md5(keysite.encode("utf-8")).hexdigest() == KEYSITE_MD5
+
+
 def bytes2human(n, f="%(value).2f %(symbol)s", symbols="customary"):
     n = int(n)
     if n < 0:
@@ -319,20 +330,22 @@ def save_config(config):
 def get_keysite():
     config = load_config()
 
-    if hashlib.md5(config.get("keysite", "").encode("utf-8")).hexdigest() != KEYSITE_MD5:
+    keysite = decode_keysite(config.get("keysite", ""))
+
+    if not validate_keysite(keysite):
         if sys.stdin.isatty():
             for _ in retry(3):
                 print("Please type *the* keysite to access online keys and tickets")
-                print("Type something like: 'aaaa.bbbbbbbbb.ccc', no http:// or quotes")
+                print("Type something like: 'http://aaaa.bbbbbbbbb.ccc', no quotes")
                 print("A blank response will exit")
-                checkurl = real_input().lower().strip()
+                keysite = input().lower().strip()
 
-                if not checkurl:
+                if not keysite:
                     print('Please set "keysite" to that title keys site in config.json')
                     sys.exit(0)
 
-                elif hashlib.md5(checkurl.encode("utf-8")).hexdigest() == KEYSITE_MD5:
-                    config["keysite"] = checkurl
+                elif validate_keysite(keysite):
+                    config["keysite"] = encode_keysite(keysite)
                     save_config(config)
                     break
 
@@ -345,7 +358,8 @@ def get_keysite():
         else:
             print('Please set "keysite" to that title keys site in config.json')
             sys.exit(2)
-    return config.get("keysite")
+
+    return keysite
 
 
 def patch_ticket_dlc(tikdata):
@@ -482,8 +496,6 @@ def process_title_id(
         if not download_file("{}/{}.h3".format(baseurl, c_id), outfnameh3, retry_count, ignore_404=True):
             print("ERROR: Could not download h3 file... Skipping title")
             return
-
-    log('\nTitle download complete in "{}"\n'.format(dirname))
 
 
 def main(

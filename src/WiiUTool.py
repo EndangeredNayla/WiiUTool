@@ -4,6 +4,7 @@ import json
 import os
 import re
 import sqlite3
+import subprocess
 import tkinter as tk
 import zipfile
 from distutils.version import LooseVersion
@@ -13,7 +14,6 @@ from tkinter import messagebox as message
 from tkinter import ttk
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
-
 from AutoComplete import AutocompleteCombobox
 
 try:
@@ -25,7 +25,7 @@ except ImportError:
 PhotoImage = tk.PhotoImage
 DEBUG = False
 
-__VERSION__ = "2.1.5"
+__VERSION__ = "1.0.0"
 targetversion = "FunKiiU v2.2"
 current_gui = LooseVersion(__VERSION__)
 
@@ -66,10 +66,8 @@ class RootWindow(tk.Tk):
         self.versions = {
             "gui_new": "",
             "gui_all": "",
-            "gui_url": "https://github.com/DerpyBubblez/FunKii-UI/releases",
             "fnku_new": "",
-            "fnku_all": "",
-            "fnku_url": "https://github.com/llakssz/FunKiiU/releases",
+            "fnku_all": ""
         }
 
         self.download_list = []
@@ -83,7 +81,6 @@ class RootWindow(tk.Tk):
         self.nb.add(tab1, text="Welcome")
         self.nb.add(self.tab2, text="Download")
         self.nb.add(tab3, text="Options")
-        self.nb.add(tab4, text="Updates")
         self.nb.pack(fill="both", expand=True)
         self.output_dir = tk.StringVar()
         self.retry_count = tk.IntVar(value=3)
@@ -132,8 +129,8 @@ class RootWindow(tk.Tk):
         t1_frm5 = ttk.Frame(tab1)
         t1_frm6 = ttk.Frame(tab1)
 
-        self.img = PhotoImage(file="logo.ppm")
-        ttk.Label(t1_frm1, image=self.img).pack()
+
+        ttk.Label(t1_frm1).pack()
         ttk.Label(
             t1_frm2,
             justify="center",
@@ -290,9 +287,8 @@ class RootWindow(tk.Tk):
         btn2 = ttk.Button(t2_frm12, text="Import", command=self.batch_import).pack(side="left")
         lbl4 = ttk.Label(t2_frm13, text="Export current list:").pack(padx=10, side="left")
         btn3 = ttk.Button(t2_frm13, text="Export", command=self.export_to_batch).pack(side="left")
-        btn = ttk.Button(t2_frm14, text="DOWNLOAD", width=30, command=self.download_clicked).pack(
-            padx=5, pady=10, side="left"
-        )
+        btndec = ttk.Button(t2_frm14, text="DECRYPT", width=30, command=self.decrypt_clicked).pack(padx=0, pady=5, side="left")
+        btn = ttk.Button(t2_frm14, text="DOWNLOAD", width=30, command=self.download_clicked).pack(padx=5, pady=10, side="left")
 
         t2_frm0.grid(row=0, column=1, columnspan=4, sticky="w")
         t2_frm1.grid(row=1, column=1, columnspan=2, sticky="w")
@@ -457,7 +453,7 @@ class RootWindow(tk.Tk):
 
         lbl = ttk.Label(
             t4_frm0,
-            text="Version Information:\n\nSince the FunKii-UI GUI and FunKiiU are two seperate applications developed by different authors,\nswitching versions can break compatibility and shouldn't be done if you don't know what you are\ndoing. I will try to implement a compatibility list in a future release",
+            text="Version Information:\n\nSince WiiU-Tool and FunKiiU are two seperate applications developed by different authors,\nswitching versions can break compatibility and shouldn't be done if you don't know what you are\ndoing. I will try to implement a compatibility list in a future release",
         ).pack(padx=5, pady=1, side="left")
         lbl = ttk.Label(t4_frm1, text="GUI application:", font="Helvetica 13 bold").pack(padx=5, pady=5, side="left")
         lbl = ttk.Label(t4_frm2, text="Running version:\nTargeted for:").pack(padx=5, pady=1, side="left")
@@ -510,10 +506,8 @@ class RootWindow(tk.Tk):
         t4_frm10.grid(row=10, column=1, padx=25, sticky="w")
         t4_frm11.grid(row=11, column=1, padx=25, sticky="w")
 
-        self.load_program_revisions()
         self.check_config_keysite()
         self.total_dl_size.set("Total Size:")
-        self.load_settings()
         self.toggle_widgets()
         self.load_title_data()
         self.load_title_sizes()
@@ -679,26 +673,18 @@ class RootWindow(tk.Tk):
         try:
             with open("config.json", "r") as cfg:
                 config = json.load(cfg)
-                site = config["keysite"]
-                if fnku.hashlib.md5(site.encode("utf-8")).hexdigest() == fnku.KEYSITE_MD5:
+                site = fnku.decode_keysite(config["keysite"])
+                if fnku.validate_keysite(site):
                     self.update_keysite_widgets()
 
         except IOError:
             pass
 
-    def notify_of_update(self, update=True):
-        txt = "Updates are available in the updates tab"
-        fg = "red"
-        if not update:
-            txt = "No updates are currently available"
-            fg = "green"
-        self.updatelabel.configure(text=txt, background="black", foreground=fg, font="Helvetica 13 bold")
-
     def update_application(self, app, zip_file):
         if app == "fnku":
-            self.download_zip(self.versions["fnku_url"].split("releases")[0] + "archive" + "/v" + zip_file + ".zip")
+            pass
         else:
-            self.download_zip(self.versions["gui_url"].split("releases")[0] + "archive" + "/v" + zip_file + ".zip")
+            pass
 
         if self.unpack_zip("update.zip"):
             print("Update completed succesfully! Restart application\nfor changes to take effect.")
@@ -929,7 +915,8 @@ class RootWindow(tk.Tk):
                         if tick == "1":
                             self.has_ticket.append(titleid)
 
-                        longname = name + "  --" + region + "  -" + content_type
+                        clean_name = name.replace('\n', ' ').title()
+                        longname = f"{clean_name} [{region}] ({content_type})"
                         entry = (name, region, titleid, titlekey, content_type, longname)
                         entry2 = longname
                         self.reverse_title_names[longname] = titleid
@@ -1055,40 +1042,6 @@ class RootWindow(tk.Tk):
             "fetch_on_batch": x[10],
             "dl_behavior": x[11],
         }
-        with open("guisettings.json", "w") as f:
-            json.dump(settings, f)
-
-    def load_settings(self, reset=False):
-        if reset:
-            self.output_dir.set("")
-            self.retry_count.set(3)
-            self.patch_demo.set(True)
-            self.patch_dlc.set(True)
-            self.tickets_only.set(False)
-            self.simulate_mode.set(False)
-            self.fetch_dlc.set(True)
-            self.fetch_updates.set(True)
-            self.remove_ignored.set(True)
-            self.auto_fetching.set("prompt")
-            self.fetch_on_batch.set(False)
-            self.dl_behavior.set(1)
-            self.save_settings()
-            return
-
-        with open("guisettings.json", "r") as f:
-            x = json.load(f)
-        self.output_dir.set(x["output_dir"])
-        self.retry_count.set(x["retry_count"])
-        self.patch_demo.set(x["patch_demo"])
-        self.patch_dlc.set(x["patch_dlc"])
-        self.tickets_only.set(x["tickets_only"])
-        self.simulate_mode.set(x["simulate_mode"])
-        self.fetch_dlc.set(x["fetch_dlc"])
-        self.fetch_updates.set(x["fetch_updates"])
-        self.remove_ignored.set(x["remove_ignored"])
-        self.auto_fetching.set(x["auto_fetching"])
-        self.fetch_on_batch.set(x["fetch_on_batch"])
-        self.dl_behavior.set(x["dl_behavior"])
 
     def add_to_list(self, titles, batch=False):
         do_add_update = False
@@ -1221,10 +1174,11 @@ class RootWindow(tk.Tk):
 
     def submit_key_site(self):
         site = self.keysite_box.get().strip()
-        if fnku.hashlib.md5(site.encode("utf-8")).hexdigest() == fnku.KEYSITE_MD5 or True:
+
+        if fnku.validate_keysite(site):
             print("Correct key site, now saving...")
             config = fnku.load_config()
-            config["keysite"] = site
+            config["keysite"] = fnku.encode_keysite(site)
             fnku.save_config(config)
             print("done saving, you are good to go!")
             self.update_keysite_widgets()
@@ -1240,62 +1194,8 @@ class RootWindow(tk.Tk):
         self.out_dir_box.delete("0", tk.END)
         self.out_dir_box.insert("end", out_dir)
 
-    def load_program_revisions(self):
-        print("Checking for program updates, this might take a few seconds.......\n")
-        url1 = self.versions["fnku_url"]
-        url2 = self.versions["gui_url"]
-        response = urlopen(url1)
-        rslts = response.read()
-        rslts = str(rslts)
-        x = ""
-        for i in rslts:
-            x = x + i
-        parser = VersionParser()
-        parser.feed(x)
-        response = urlopen(url2)
-        rslts = response.read()
-        rslts = str(rslts)
-        x = ""
-        for i in rslts:
-            x = x + i
-        parser = VersionParser()
-        parser.feed(x)
-
-        fnku_data_set = parser.fnku_data_set
-        gui_data_set = parser.gui_data_set
-
-        fnku_all = []
-        fnku_newest = ""
-        gui_all = []
-        gui_newest = ""
-
-        for i in fnku_data_set:
-            ver = LooseVersion(i.split("/")[4][1:-4])
-            fnku_all.append(str(ver))
-        fnku_newest = max(fnku_all)
-
-        for i in gui_data_set:
-            m = re.search("v([0-9]\.[0-9]\.[0-9])", i)
-            if not m:
-                continue
-            ver = LooseVersion(m.groups()[0])
-            if ver > LooseVersion("2.0.5"):
-                gui_all.append(ver)
-
-        gui_newest = max(gui_all)
-        if gui_newest > current_gui or fnku_newest > current_fnku:
-            self.notify_of_update()
-        else:
-            self.notify_of_update(update=False)
-
-        self.versions["fnku_all"] = fnku_all
-        self.versions["fnku_new"] = fnku_newest
-        self.newest_fnku_ver.set(fnku_newest)
-        self.versions["gui_all"] = [str(i) for i in gui_all]
-        self.versions["gui_new"] = str(gui_newest)
-        self.newest_gui_ver.set(gui_newest)
-        self.gui_switchv_box.configure(values=[x for x in self.versions["gui_all"]])
-        self.fnku_switchv_box.configure(values=[x for x in self.versions["fnku_all"]])
+    def decrypt_clicked(self):
+        os.startfile('decrypt.bat')
 
     def download_clicked(self):
         title_list = []
@@ -1365,13 +1265,12 @@ class RootWindow(tk.Tk):
         print(str(len(ignored)) + " titles were ignored and not downloaded")
 
     def set_icon(self):
-        icon = PhotoImage(file="icon.ppm")
-        self.tk.call("wm", "iconphoto", self._w, icon)
+        icon = PhotoImage()
 
 
 if __name__ == "__main__":
     root = RootWindow()
-    root.title("FunKii-UI")
+    root.title("WiiU-Tool")
     root.resizable(width=False, height=False)
     root.set_icon()
     root.mainloop()

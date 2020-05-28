@@ -1,1 +1,0 @@
-{"patch_dlc": true, "tickets_only": false, "auto_fetching": "prompt", "remove_ignored": true, "patch_demo": true, "simulate_mode": false, "dl_behavior": 1, "fetch_on_batch": false, "fetch_dlc": true, "fetch_updates": true, "retry_count": 3, "output_dir": ""}
