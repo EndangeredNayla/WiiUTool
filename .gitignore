@@ -1,5 +1,6 @@
 __pycache__
 bin
+build
 titlekeys.json
 data.db
 src/__pycache__

@@ -134,15 +134,18 @@ class RootWindow(tk.Tk):
         ttk.Label(
             t1_frm2,
             justify="center",
-            text="This is a simple GUI by dojafoja that was written for FunKiiU.\nCredits to cearp, cerea1killer, and all the Github contributors for writing FunKiiU.",
+            text="This is a simple GUI that was written for FunKiiU.\nCredits to cearp, cerea1killer, and all the Github contributors for writing FunKiiU.",
         ).pack()
         ttk.Label(
             t1_frm3,
             justify="center",
             text="If this is your first time running the program, you will need to provide the name of *that key site*. If you haven't already\nprovided the address to the key site, you MUST provide it below before proceeding. You only need to provide this information once!",
         ).pack(pady=15)
+        self.check_config_keysite()
         self.enterkeysite_lbl = ttk.Label(
-            t1_frm4, text="Enter the name of *that key site*. Something like http://wiiu.thatkeysite.com"
+            t1_frm4,
+            justify="center",
+            text="Enter the name of *that key site*. Something like http://vault.keysite.ovh\nMake sure the pasted URL does not include any forward slashes at the end of the URL"
         )
         self.enterkeysite_lbl.pack(pady=15, side="left")
         self.http_lbl = ttk.Label(t1_frm5, text="")
@@ -477,7 +480,7 @@ class RootWindow(tk.Tk):
             padx=5, pady=5, side="left"
         )
         lbl = ttk.Label(t4_frm8, text="running version:").pack(padx=5, pady=1, side="left")
-        lbl = ttk.Label(t4_frm8, text=fnku.__VERSION__).pack(padx=5, pady=1, side="left")
+        lbl = ttk.Label(t4_frm8, text=__VERSION__).pack(padx=5, pady=1, side="left")
         lbl = ttk.Label(t4_frm9, text="latest release:").pack(padx=5, pady=1, side="left")
         lbl = ttk.Label(t4_frm9, textvariable=self.newest_fnku_ver).pack(padx=5, pady=1, side="left")
         lbl = ttk.Label(t4_frm10, text="Update to latest release:").pack(padx=5, pady=1, side="left")
