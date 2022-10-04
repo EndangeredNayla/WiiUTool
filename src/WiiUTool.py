@@ -893,7 +893,7 @@ class RootWindow(tk.Tk):
         try:
             if not os.path.isfile("titlekeys.json"):
                 return
-            with open("titlekeys.json") as td:
+            with open("titlekeys.json", encoding='utf8') as td:
                 title_data = json.load(td)
             self.errors = 0
             print("Now parsing titlekeys.json")
